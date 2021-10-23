@@ -1,23 +1,21 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobx/mobx.dart';
 import 'package:mocktail/mocktail.dart' as mocktail;
-import 'package:tmdb/core/usecase/usecase.dart';
+import 'package:tmdb/core/errors/failures.dart';
 import 'package:tmdb/features/domain/entities/movie_entity.dart';
 import 'package:tmdb/features/domain/repositories/movies_repository.dart';
-import 'package:tmdb/features/domain/usecases/get_movies_usecase.dart';
+import 'package:tmdb/features/domain/usecases/get_movies_from_year_usecase.dart';
 
 void main() {
-  late GetMoviesUsecase usecase;
+  late GetMoviesFromYearUsecase usecase;
   late IMoviesRepository repository;
-  final noParams = NoParams();
 
   setUp(() {
     repository = MockMoviesRepository();
-    usecase = GetMoviesUsecase(repository);
+    usecase = GetMoviesFromYearUsecase(repository);
   });
 
-  final tMovies = MovieEntity(
+  final movies = MovieEntity(
     backdropPath: '',
     overview: '',
     popularity: 10,
@@ -28,11 +26,20 @@ void main() {
     voteCount: 5,
   );
 
-  test('Should get movies', () async {
-    mocktail.when(() => repository.getMoviesFromYear()).thenAnswer((_) async => Right(tMovies));
-    final result = await usecase(noParams);
-    expect(result, Right(tMovies));
-    mocktail.verify(() => repository.getMoviesFromYear());
+  final int year = 2020;
+
+  test('Should get movies from a given year', () async {
+    mocktail.when(() => repository.getMoviesFromYear(year: year)).thenAnswer((_) async => Right(movies));
+    final result = await usecase(year);
+    expect(result, Right(movies));
+    mocktail.verify(() => repository.getMoviesFromYear(year: year));
+  });
+
+  test('Should return a failure when the request dont succeed', () async {
+    mocktail.when(() => repository.getMoviesFromYear(year: year)).thenAnswer((_) async => Left(ServerFailure()));
+    final result = await usecase(year);
+    expect(result, Left(ServerFailure()));
+    mocktail.verify(() => repository.getMoviesFromYear(year: year));
   });
 }
 
